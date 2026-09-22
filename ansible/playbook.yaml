@@ -15,3 +15,48 @@
           - git
           - unzip
         state: present
+
+- name: Installing Node on app
+  hosts: app
+  become: true
+
+  tasks:
+    - name: Install Node Exporter
+      ansible.builtin.apt:
+        name: prometheus-node-exporter
+        state: present
+
+    - name: Start Node Exporter
+      ansible.builtin.systemd:
+        name: prometheus-node-exporter
+        enabled: true
+        state: started
+
+- name: Install Prometheus on monitoring
+  hosts: monitoring
+  become: true
+
+  tasks:
+    - name: Install Prometheus
+      ansible.builtin.apt:
+        name: prometheus
+        state: present
+
+    - name: Configure Prometheus
+      ansible.builtin.copy:
+        dest: /etc/prometheus/prometheus.yml
+        content: |
+          global:
+            scrape_interval: 15s
+
+          scrape_configs:
+            - job_name: "node"
+              static_configs:
+                - targets:
+                    - "192.168.56.10:9100"
+
+    - name: Restart Prometheus
+      ansible.builtin.systemd:
+        name: prometheus
+        enabled: true
+        state: restarted
