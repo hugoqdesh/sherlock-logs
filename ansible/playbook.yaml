@@ -60,3 +60,44 @@
         name: prometheus
         enabled: true
         state: restarted
+
+- name: Install Grafana on monitoring
+  hosts: monitoring
+  become: true
+
+  tasks:
+    - name: Install Grafana dependencies
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - software-properties-common
+          - wget
+        state: present
+
+    - name: Add Grafana GPG key
+      ansible.builtin.shell: |
+        mkdir -p /etc/apt/keyrings
+        wget -q -O /etc/apt/keyrings/grafana.key https://apt.grafana.com/gpg.key
+      args:
+        creates: /etc/apt/keyrings/grafana.key
+
+    - name: Add Grafana repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/grafana.list
+        content: |
+          deb [signed-by=/etc/apt/keyrings/grafana.key] https://apt.grafana.com stable main
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install Grafana
+      ansible.builtin.apt:
+        name: grafana
+        state: present
+
+    - name: Start Grafana
+      ansible.builtin.systemd:
+        name: grafana-server
+        enabled: true
+        state: started
