@@ -1,0 +1,37 @@
+filebeat.inputs:
+  - type: filestream
+    id: system-logs
+    enabled: true
+    paths:
+      - /var/log/syslog
+      - /var/log/auth.log
+      - /var/log/kern.log
+    fields:
+      log:
+        category: system
+    fields_under_root: true
+
+{% if inventory_hostname == "app" %}
+  - type: filestream
+    id: docker-containers
+    enabled: true
+    paths:
+      - /var/lib/docker/containers/*/*-json.log
+    parsers:
+      - container:
+          stream: all
+          format: docker
+    fields:
+      log:
+        category: docker
+    fields_under_root: true
+    processors:
+      - add_docker_metadata:
+          host: unix:///var/run/docker.sock
+{% endif %}
+
+processors:
+  - add_host_metadata: ~
+
+output.logstash:
+  hosts: ["192.168.56.20:5044"]

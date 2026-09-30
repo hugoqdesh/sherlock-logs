@@ -247,3 +247,202 @@
           -v /var/lib/docker/:/var/lib/docker:ro \
           -v /dev/disk/:/dev/disk:ro \
           ghcr.io/google/cadvisor:0.55.1
+
+- name: Configure Elastic package repository
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install Elastic repository dependencies
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - gnupg
+        state: present
+
+    - name: Install Elastic signing key
+      ansible.builtin.get_url:
+        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+        dest: /usr/share/keyrings/elastic.asc
+        mode: "0644"
+
+    - name: Add Elastic repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/elastic-9.x.list
+        mode: "0644"
+        content: |
+          deb [signed-by=/usr/share/keyrings/elastic.asc] https://artifacts.elastic.co/packages/9.x/apt stable main
+
+- name: Install logging stack on monitoring
+  hosts: monitoring
+  become: true
+
+  tasks:
+    - name: Install Elasticsearch, Logstash, and Kibana
+      ansible.builtin.apt:
+        name:
+          - elasticsearch
+          - logstash
+          - kibana
+        state: present
+        update_cache: true
+
+    - name: Configure Elasticsearch
+      ansible.builtin.copy:
+        src: files/elasticsearch/elasticsearch.yml
+        dest: /etc/elasticsearch/elasticsearch.yml
+        owner: root
+        group: elasticsearch
+        mode: "0660"
+      notify: Restart Elasticsearch
+
+    - name: Limit Elasticsearch memory
+      ansible.builtin.copy:
+        dest: /etc/elasticsearch/jvm.options.d/heap.options
+        owner: root
+        group: elasticsearch
+        mode: "0644"
+        content: |
+          -Xms512m
+          -Xmx512m
+      notify: Restart Elasticsearch
+
+    - name: Start Elasticsearch
+      ansible.builtin.systemd:
+        name: elasticsearch
+        enabled: true
+        state: started
+
+    - name: Wait for Elasticsearch
+      ansible.builtin.uri:
+        url: http://127.0.0.1:9200/_cluster/health
+        status_code: 200
+      register: elasticsearch_health
+      retries: 30
+      delay: 2
+      until: elasticsearch_health.status == 200
+
+    - name: Configure Sherlock log index defaults
+      ansible.builtin.uri:
+        url: http://127.0.0.1:9200/_index_template/sherlock-logs
+        method: PUT
+        body_format: json
+        body:
+          index_patterns:
+            - sherlock-logs-*
+          template:
+            settings:
+              index:
+                number_of_replicas: 0
+        status_code: 200
+
+    - name: Apply single-node settings to existing log indices
+      ansible.builtin.uri:
+        url: http://127.0.0.1:9200/sherlock-logs-*/_settings
+        method: PUT
+        body_format: json
+        body:
+          index:
+            number_of_replicas: 0
+        status_code:
+          - 200
+          - 404
+
+    - name: Configure Logstash pipeline
+      ansible.builtin.copy:
+        src: files/logstash/sherlock.conf
+        dest: /etc/logstash/conf.d/sherlock.conf
+        owner: root
+        group: logstash
+        mode: "0644"
+      notify: Restart Logstash
+
+    - name: Limit Logstash memory
+      ansible.builtin.lineinfile:
+        path: /etc/logstash/jvm.options
+        regexp: "^-Xm{{ item.key }}"
+        line: "-Xm{{ item.key }}{{ item.value }}"
+      loop:
+        - key: s
+          value: 512m
+        - key: x
+          value: 512m
+      notify: Restart Logstash
+
+    - name: Start Logstash
+      ansible.builtin.systemd:
+        name: logstash
+        enabled: true
+        state: started
+
+    - name: Configure Kibana
+      ansible.builtin.copy:
+        src: files/kibana/kibana.yml
+        dest: /etc/kibana/kibana.yml
+        owner: root
+        group: kibana
+        mode: "0660"
+      notify: Restart Kibana
+
+    - name: Limit Kibana memory
+      ansible.builtin.lineinfile:
+        path: /etc/default/kibana
+        regexp: ^NODE_OPTIONS=
+        line: NODE_OPTIONS="--max-old-space-size=1024"
+        create: true
+        mode: "0644"
+      notify: Restart Kibana
+
+    - name: Start Kibana
+      ansible.builtin.systemd:
+        name: kibana
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Restart Elasticsearch
+      ansible.builtin.systemd:
+        name: elasticsearch
+        state: restarted
+
+    - name: Restart Logstash
+      ansible.builtin.systemd:
+        name: logstash
+        state: restarted
+
+    - name: Restart Kibana
+      ansible.builtin.systemd:
+        name: kibana
+        state: restarted
+
+- name: Install Filebeat on every VM
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install Filebeat
+      ansible.builtin.apt:
+        name: filebeat
+        state: present
+        update_cache: true
+
+    - name: Configure Filebeat
+      ansible.builtin.template:
+        src: templates/filebeat.yml.j2
+        dest: /etc/filebeat/filebeat.yml
+        owner: root
+        group: root
+        mode: "0600"
+      notify: Restart Filebeat
+
+    - name: Start Filebeat
+      ansible.builtin.systemd:
+        name: filebeat
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Restart Filebeat
+      ansible.builtin.systemd:
+        name: filebeat
+        state: restarted
