@@ -1,0 +1,131 @@
+{
+	"annotations": { "list": [] },
+	"editable": false,
+	"graphTooltip": 1,
+	"links": [],
+	"panels": [
+		{
+			"datasource": "prometheus",
+			"fieldConfig": {
+				"defaults": { "max": 100, "min": 0, "unit": "percent" },
+				"overrides": []
+			},
+			"gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+			"id": 1,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": { "mode": "multi", "sort": "desc" }
+			},
+			"targets": [
+				{
+					"datasource": "prometheus",
+					"editorMode": "code",
+					"expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+					"legendFormat": "{{instance}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "CPU Usage",
+			"type": "timeseries"
+		},
+		{
+			"datasource": "prometheus",
+			"fieldConfig": {
+				"defaults": { "max": 100, "min": 0, "unit": "percent" },
+				"overrides": []
+			},
+			"gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+			"id": 2,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": { "mode": "multi", "sort": "desc" }
+			},
+			"targets": [
+				{
+					"datasource": "prometheus",
+					"editorMode": "code",
+					"expr": "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100",
+					"legendFormat": "{{instance}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Memory Utilization",
+			"type": "timeseries"
+		},
+		{
+			"datasource": "prometheus",
+			"fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
+			"gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+			"id": 3,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": { "mode": "multi", "sort": "desc" }
+			},
+			"targets": [
+				{
+					"datasource": "prometheus",
+					"editorMode": "code",
+					"expr": "sum by (instance) (rate(node_disk_read_bytes_total[5m]) + rate(node_disk_written_bytes_total[5m]))",
+					"legendFormat": "{{instance}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Disk I/O",
+			"type": "timeseries"
+		},
+		{
+			"datasource": "prometheus",
+			"fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
+			"gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+			"id": 4,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": { "mode": "multi", "sort": "desc" }
+			},
+			"targets": [
+				{
+					"datasource": "prometheus",
+					"editorMode": "code",
+					"expr": "sum by (instance) (rate(node_network_receive_bytes_total{device!=\"lo\"}[5m]) + rate(node_network_transmit_bytes_total{device!=\"lo\"}[5m]))",
+					"legendFormat": "{{instance}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Network Traffic",
+			"type": "timeseries"
+		}
+	],
+	"refresh": "15s",
+	"schemaVersion": 41,
+	"tags": ["sherlock-logs", "vm"],
+	"templating": { "list": [] },
+	"time": { "from": "now-1h", "to": "now" },
+	"timezone": "browser",
+	"title": "VM Performance Dashboard",
+	"uid": "sherlock-vm-performance",
+	"version": 1
+}

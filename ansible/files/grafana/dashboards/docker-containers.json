@@ -1,0 +1,134 @@
+{
+	"annotations": { "list": [] },
+	"editable": false,
+	"graphTooltip": 1,
+	"links": [],
+	"panels": [
+		{
+			"datasource": "prometheus",
+			"fieldConfig": { "defaults": { "min": 0, "unit": "s" }, "overrides": [] },
+			"gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+			"id": 1,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": { "mode": "multi", "sort": "desc" }
+			},
+			"targets": [
+				{
+					"datasource": "prometheus",
+					"editorMode": "code",
+					"expr": "time() - container_last_seen{image!=\"\"}",
+					"legendFormat": "{{name}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Container Health (Seconds Since Last Seen)",
+			"type": "timeseries"
+		},
+		{
+			"datasource": "prometheus",
+			"fieldConfig": {
+				"defaults": { "min": 0, "unit": "percent" },
+				"overrides": []
+			},
+			"gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+			"id": 2,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": { "mode": "multi", "sort": "desc" }
+			},
+			"targets": [
+				{
+					"datasource": "prometheus",
+					"editorMode": "code",
+					"expr": "sum by (name) (rate(container_cpu_usage_seconds_total{image!=\"\"}[5m])) * 100",
+					"legendFormat": "{{name}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Container CPU Usage",
+			"type": "timeseries"
+		},
+		{
+			"datasource": "prometheus",
+			"fieldConfig": {
+				"defaults": { "min": 0, "unit": "bytes" },
+				"overrides": []
+			},
+			"gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+			"id": 3,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": { "mode": "multi", "sort": "desc" }
+			},
+			"targets": [
+				{
+					"datasource": "prometheus",
+					"editorMode": "code",
+					"expr": "container_memory_working_set_bytes{image!=\"\"}",
+					"legendFormat": "{{name}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Container Memory Usage",
+			"type": "timeseries"
+		},
+		{
+			"datasource": "prometheus",
+			"fieldConfig": {
+				"defaults": { "decimals": 0, "min": 0, "unit": "short" },
+				"overrides": []
+			},
+			"gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+			"id": 4,
+			"options": {
+				"legend": {
+					"calcs": ["lastNotNull"],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"tooltip": { "mode": "multi", "sort": "desc" }
+			},
+			"targets": [
+				{
+					"datasource": "prometheus",
+					"editorMode": "code",
+					"expr": "changes(container_start_time_seconds{image!=\"\"}[15m])",
+					"legendFormat": "{{name}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Container Restarts (15 Minutes)",
+			"type": "timeseries"
+		}
+	],
+	"refresh": "15s",
+	"schemaVersion": 41,
+	"tags": ["sherlock-logs", "docker"],
+	"templating": { "list": [] },
+	"time": { "from": "now-1h", "to": "now" },
+	"timezone": "browser",
+	"title": "Docker Container Dashboard",
+	"uid": "sherlock-docker-containers",
+	"version": 1
+}

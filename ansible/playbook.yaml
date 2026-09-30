@@ -122,6 +122,47 @@
               editable: false
       notify: Restart Grafana
 
+    - name: Create Grafana dashboard directory
+      ansible.builtin.file:
+        path: /var/lib/grafana/dashboards
+        state: directory
+        owner: grafana
+        group: grafana
+        mode: "0755"
+
+    - name: Copy Grafana dashboards
+      ansible.builtin.copy:
+        src: "files/grafana/dashboards/{{ item }}"
+        dest: "/var/lib/grafana/dashboards/{{ item }}"
+        owner: grafana
+        group: grafana
+        mode: "0644"
+      loop:
+        - vm-performance.json
+        - docker-containers.json
+        - application-performance.json
+      notify: Restart Grafana
+
+    - name: Provision Grafana dashboards
+      ansible.builtin.copy:
+        dest: /etc/grafana/provisioning/dashboards/sherlock.yaml
+        mode: "0644"
+        content: |
+          apiVersion: 1
+
+          providers:
+            - name: Sherlock Logs
+              orgId: 1
+              folder: Sherlock Logs
+              folderUid: sherlock-logs
+              type: file
+              disableDeletion: false
+              updateIntervalSeconds: 10
+              allowUiUpdates: false
+              options:
+                path: /var/lib/grafana/dashboards
+      notify: Restart Grafana
+
     - name: Start Grafana
       ansible.builtin.systemd:
         name: grafana-server
