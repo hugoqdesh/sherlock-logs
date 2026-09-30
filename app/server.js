@@ -23,6 +23,7 @@ const healthCheckCounter = new client.Counter({
 });
 
 app.use((req, res, next) => {
+	const startedAt = process.hrtime.bigint();
 	const end = requestDuration.startTimer({
 		method: req.method,
 	});
@@ -38,6 +39,16 @@ app.use((req, res, next) => {
 			route: req.path,
 			status_code: res.statusCode.toString(),
 		});
+
+		console.log(
+			JSON.stringify({
+				event: "http_request",
+				method: req.method,
+				path: req.path,
+				status_code: res.statusCode,
+				duration_ms: Number(process.hrtime.bigint() - startedAt) / 1e6,
+			}),
+		);
 	});
 
 	next();
@@ -60,6 +71,28 @@ app.get("/metrics", async (req, res) => {
 	res.end(await client.register.metrics());
 });
 
+app.use((error, req, res, next) => {
+	console.error(
+		JSON.stringify({
+			event: "request_error",
+			method: req.method,
+			path: req.path,
+			error: error.message,
+		}),
+	);
+
+	if (res.headersSent) {
+		return next(error);
+	}
+
+	res.status(500).json({ error: "Internal Server Error" });
+});
+
 app.listen(3000, "0.0.0.0", () => {
-	console.log("App listening on port 3000");
+	console.log(
+		JSON.stringify({
+			event: "application_started",
+			port: 3000,
+		}),
+	);
 });
