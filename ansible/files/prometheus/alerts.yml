@@ -1,0 +1,60 @@
+groups:
+  - name: vm
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU usage is above 80% on {{ $labels.instance }}"
+
+      - alert: LowDiskSpace
+        expr: 100 * node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 20
+        labels:
+          severity: warning
+        annotations:
+          summary: "Available disk space is below 20% on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory usage is above 90% on {{ $labels.instance }}"
+
+      - alert: VMUnreachable
+        expr: up{job="node"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "VM {{ $labels.instance }} is unreachable"
+
+  - name: docker
+    rules:
+      - alert: ContainerRestartingFrequently
+        expr: changes(container_start_time_seconds{image!=""}[15m]) > 3
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} restarted more than 3 times in 15 minutes"
+
+      - alert: ContainerHighMemoryUsage
+        expr: 100 * container_memory_working_set_bytes{image!=""} / (container_spec_memory_limit_bytes{image!=""} > 0) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} is using over 80% of its memory limit"
+
+  - name: elasticsearch
+    rules:
+      - alert: ElasticsearchClusterUnhealthy
+        expr: elasticsearch_cluster_health_status{color=~"yellow|red"} == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Elasticsearch cluster status is {{ $labels.color }}"
