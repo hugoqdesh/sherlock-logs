@@ -106,11 +106,33 @@
         name: grafana
         state: present
 
+    - name: Provision Prometheus datasource
+      ansible.builtin.copy:
+        dest: /etc/grafana/provisioning/datasources/prometheus.yaml
+        mode: "0644"
+        content: |
+          apiVersion: 1
+
+          datasources:
+            - name: prometheus
+              type: prometheus
+              access: proxy
+              url: http://localhost:9090
+              isDefault: true
+              editable: false
+      notify: Restart Grafana
+
     - name: Start Grafana
       ansible.builtin.systemd:
         name: grafana-server
         enabled: true
         state: started
+
+  handlers:
+    - name: Restart Grafana
+      ansible.builtin.systemd:
+        name: grafana-server
+        state: restarted
 
 - name: Deploy application
   hosts: app
