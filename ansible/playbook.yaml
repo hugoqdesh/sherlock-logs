@@ -399,6 +399,43 @@
         enabled: true
         state: started
 
+    - name: Wait for Kibana
+      ansible.builtin.uri:
+        url: http://127.0.0.1:5601/api/status
+        status_code: 200
+      register: kibana_status
+      retries: 60
+      delay: 2
+      until:
+        - kibana_status.status == 200
+        - kibana_status.json.status.overall.level == "available"
+
+    - name: Copy Kibana saved objects
+      ansible.builtin.copy:
+        src: files/kibana/sherlock-dashboards.ndjson
+        dest: /etc/kibana/sherlock-dashboards.ndjson
+        owner: root
+        group: kibana
+        mode: "0640"
+
+    - name: Import Kibana saved objects
+      ansible.builtin.command:
+        argv:
+          - curl
+          - --fail
+          - --silent
+          - --show-error
+          - --request
+          - POST
+          - --header
+          - "kbn-xsrf: true"
+          - --form
+          - file=@/etc/kibana/sherlock-dashboards.ndjson
+          - http://127.0.0.1:5601/api/saved_objects/_import?overwrite=true
+      register: kibana_import
+      changed_when: false
+      failed_when: not (kibana_import.stdout | from_json).success
+
   handlers:
     - name: Restart Elasticsearch
       ansible.builtin.systemd:
