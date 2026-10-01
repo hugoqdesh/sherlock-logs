@@ -52,7 +52,7 @@ The application exposes request counts, request-duration histograms, default Nod
 
 ## Alerts
 
-Prometheus provisions alerts for high VM CPU and memory usage, low disk space, unreachable VMs, frequent container restarts, high container memory usage, and unhealthy Elasticsearch cluster status. Alert state is visible in the Prometheus UI.
+Prometheus and Grafana provision alerts for high VM CPU and memory usage, low disk space, unreachable VMs, frequent container restarts, high container memory usage, and unhealthy Elasticsearch cluster status. Grafana-managed rules are available in the `Sherlock Logs` alert folder, while Prometheus-managed rule state remains visible in the Prometheus UI.
 
 ## Validation
 
