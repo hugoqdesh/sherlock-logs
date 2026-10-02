@@ -65,6 +65,19 @@
         cmd: promtool check rules /etc/prometheus/rules/alerts.yml
       changed_when: false
 
+    - name: Install Prometheus alert rule tests
+      ansible.builtin.copy:
+        src: files/prometheus/alerts.test.yml
+        dest: /etc/prometheus/alerts.test.yml
+        owner: root
+        group: prometheus
+        mode: "0640"
+
+    - name: Test Prometheus alert rules
+      ansible.builtin.command:
+        cmd: promtool test rules /etc/prometheus/alerts.test.yml
+      changed_when: false
+
     - name: Configure Prometheus
       ansible.builtin.copy:
         dest: /etc/prometheus/prometheus.yml
@@ -408,6 +421,15 @@
           - 200
           - 404
 
+    - name: Configure terminal alert broadcasts
+      ansible.builtin.copy:
+        src: files/rsyslog/sherlock-alerts.conf
+        dest: /etc/rsyslog.d/30-sherlock-alerts.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart rsyslog
+
     - name: Configure Logstash pipeline
       ansible.builtin.copy:
         src: files/logstash/sherlock.conf
@@ -497,6 +519,11 @@
       failed_when: not (kibana_import.stdout | from_json).success
 
   handlers:
+    - name: Restart rsyslog
+      ansible.builtin.systemd:
+        name: rsyslog
+        state: restarted
+
     - name: Restart Elasticsearch
       ansible.builtin.systemd:
         name: elasticsearch

@@ -1,0 +1,91 @@
+rule_files:
+  - /etc/prometheus/rules/alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: Required infrastructure alerts fire
+    interval: 1m
+    input_series:
+      - series: 'node_cpu_seconds_total{instance="vm",mode="idle"}'
+        values: "0+6x15"
+      - series: 'node_memory_MemAvailable_bytes{instance="vm"}'
+        values: "5+0x15"
+      - series: 'node_memory_MemTotal_bytes{instance="vm"}'
+        values: "100+0x15"
+      - series: 'node_filesystem_avail_bytes{instance="vm",mountpoint="/"}'
+        values: "10+0x15"
+      - series: 'node_filesystem_size_bytes{instance="vm",mountpoint="/"}'
+        values: "100+0x15"
+      - series: 'up{instance="vm",job="node"}'
+        values: "0+0x15"
+      - series: 'container_start_time_seconds{image="test",name="test"}'
+        values: "0 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14"
+      - series: 'container_memory_working_set_bytes{image="test",name="test"}'
+        values: "90+0x15"
+      - series: 'container_spec_memory_limit_bytes{image="test",name="test"}'
+        values: "100+0x15"
+      - series: 'elasticsearch_cluster_health_status{color="yellow"}'
+        values: "1+0x15"
+
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: HighCPUUsage
+        exp_alerts:
+          - exp_labels:
+              instance: vm
+              severity: warning
+            exp_annotations:
+              summary: CPU usage is above 80% on vm
+      - eval_time: 10m
+        alertname: LowDiskSpace
+        exp_alerts:
+          - exp_labels:
+              instance: vm
+              mountpoint: /
+              severity: warning
+            exp_annotations:
+              summary: Available disk space is below 20% on vm
+      - eval_time: 10m
+        alertname: HighMemoryUsage
+        exp_alerts:
+          - exp_labels:
+              instance: vm
+              severity: warning
+            exp_annotations:
+              summary: Memory usage is above 90% on vm
+      - eval_time: 10m
+        alertname: VMUnreachable
+        exp_alerts:
+          - exp_labels:
+              instance: vm
+              job: node
+              severity: critical
+            exp_annotations:
+              summary: VM vm is unreachable
+      - eval_time: 10m
+        alertname: ContainerRestartingFrequently
+        exp_alerts:
+          - exp_labels:
+              image: test
+              name: test
+              severity: warning
+            exp_annotations:
+              summary: Container test restarted more than 3 times in 15 minutes
+      - eval_time: 10m
+        alertname: ContainerHighMemoryUsage
+        exp_alerts:
+          - exp_labels:
+              image: test
+              name: test
+              severity: warning
+            exp_annotations:
+              summary: Container test is using over 80% of its memory limit
+      - eval_time: 10m
+        alertname: ElasticsearchClusterUnhealthy
+        exp_alerts:
+          - exp_labels:
+              color: yellow
+              severity: critical
+            exp_annotations:
+              summary: Elasticsearch cluster status is yellow
